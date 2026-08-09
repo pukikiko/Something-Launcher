@@ -31,7 +31,6 @@ import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
@@ -233,10 +232,9 @@ private fun getAllAppsBaseColor(context: Context, defaultColor: Int): Int {
 /** Apply Lawnchair custom allapps opacity and colour to the provided colour */
 fun getAllAppsBackgroundColor(context: Context, defaultColor: Int): Int {
     val prefs = PreferenceManager.getInstance(context)
-    // LC-Feature: Smart Categorized drawer uses a fixed light lavender background so the white
-    // category cards read as cards on a tinted sheet.
+    // LC-Feature: Smart Categorized drawer uses the dynamic expressive neutral surface.
     if (prefs.drawerMode.get() == PreferenceManager.DRAWER_MODE_CARDS) {
-        return Color.parseColor("#EEEDF3")
+        return ColorTokens.ExpressiveAllAppsBackground.resolveColor(context)
     }
     val userOpacity = prefs.drawerOpacity.get()
     return ColorUtils.setAlphaComponent(getAllAppsBaseColor(context, defaultColor), (userOpacity * 255).roundToInt())

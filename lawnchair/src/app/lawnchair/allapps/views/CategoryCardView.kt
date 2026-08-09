@@ -18,7 +18,6 @@
 package app.lawnchair.allapps.views
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
@@ -30,6 +29,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import app.lawnchair.allapps.CategoryInfo
+import app.lawnchair.theme.color.tokens.ColorTokens
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.R
 import kotlin.math.ceil
@@ -59,7 +59,7 @@ class CategoryCardView @JvmOverloads constructor(
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = radius
-            setColor(Color.parseColor("#F8F7FB"))
+            setColor(ColorTokens.ExpressiveAllAppsCard.resolveColor(context))
         }
         elevation = resources.getDimension(R.dimen.all_apps_category_card_elevation)
     }
@@ -68,7 +68,7 @@ class CategoryCardView @JvmOverloads constructor(
         super.onFinishInflate()
         titleView = TextView(context).apply {
             id = R.id.category_card_title
-            setTextColor(Color.parseColor("#1F1F1F"))
+            setTextColor(ColorTokens.ExpressiveAllAppsText.resolveColor(context))
             textSize = resources.getDimension(R.dimen.all_apps_category_header_size) /
                 resources.displayMetrics.scaledDensity
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -178,6 +178,10 @@ class CategoryCardView @JvmOverloads constructor(
         iconLongClickListener: View.OnLongClickListener,
     ) {
         icon.applyFromApplicationInfo(app)
+        icon.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(ColorTokens.ExpressiveAllAppsAvatar.resolveColor(context))
+        }
         // Icon-only mini grid, matching the avatar look.
         icon.setTextVisibility(false)
         icon.setOnClickListener(iconClickListener)

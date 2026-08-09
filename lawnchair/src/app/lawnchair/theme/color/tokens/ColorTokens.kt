@@ -195,6 +195,32 @@ object ColorTokens {
     // Material 3 Expressive
     @JvmField val ExpressiveAllApps = DayNightColorToken(Accent1_100, Accent1_800).setAlpha(0.5f)
 
+    // Surfaces used by the categorized drawer. These deliberately derive from the active Monet
+    // neutral palettes rather than reproducing a screenshot's fixed hex values.
+    @JvmField val ExpressiveAllAppsBackground = DayNightColorToken(
+        Neutral1_100.setLStar(94.0), Neutral1_900.setLStar(8.0),
+    )
+
+    @JvmField val ExpressiveAllAppsCard = DayNightColorToken(
+        Neutral1_50.setLStar(98.0), Neutral1_800.setLStar(16.0),
+    )
+
+    @JvmField val ExpressiveAllAppsSearch = DayNightColorToken(
+        Neutral2_100.setLStar(88.0), Neutral2_800.setLStar(24.0),
+    )
+
+    @JvmField val ExpressiveAllAppsAvatar = DayNightColorToken(
+        Neutral1_0, Neutral1_800.setLStar(24.0),
+    )
+
+    @JvmField val ExpressiveAllAppsText = DayNightColorToken(
+        Neutral1_900, Neutral1_50,
+    )
+
+    @JvmField val ExpressiveAllAppsHandle = DayNightColorToken(
+        Neutral2_500, Neutral2_300,
+    )
+
     @JvmField val BottomSheetBackgroundColorBlurFallback = DayNightColorToken(Accent2_200, Accent2_800)
 
     @JvmField val shade_panel_fg_color = DayNightColorToken(

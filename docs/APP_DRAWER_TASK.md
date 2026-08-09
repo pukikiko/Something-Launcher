@@ -2,8 +2,8 @@
 
 One line per diff in §7 of the design spec, checked off as implemented.
 
-- [x] 1. **Theme** — drawer switched from dark to light: lavender-grey `#EEEDF3` background, dark
-      text on near-white cards (in category-cards mode).
+- [x] 1. **Theme** — drawer switched from dark to a dynamic Material neutral surface, with dark
+      text on a lighter dynamic card surface (in category-cards mode).
 - [x] 2. **Card layout** — cards now render in a 2-column grid (left-to-right, top-to-bottom;
       odd last row leaves an empty slot).
 - [x] 3. **Icon treatment** — icons render in a 2-col wrapping grid per card, on circular white

@@ -5,7 +5,8 @@
 
 ## 1. Screen-level layout
 
-- **Background**: full-bleed, very light lavender-grey `#EEEDF3` (NOT pure white, NOT dark).
+- **Background**: full-bleed, very light dynamic neutral surface (lavender-grey in the reference;
+  derived from the active Material/Monet neutral palette, never a fixed hex).
 - **Presentation**: the drawer is a bottom sheet / drawer pulled up over the home screen (not a
   full-screen activity).
   - A small horizontal **drag-handle pill** sits centered at the very top edge, just under the
@@ -27,7 +28,7 @@
 
 ## 3. Card component
 
-- Background: near-white `#F8F7FB` / `#FFFFFF` @ ~95%, clearly lighter than the screen bg.
+- Background: dynamic near-white neutral surface, clearly lighter than the screen bg.
 - Soft, subtle drop shadow (elevation ≈ 2–4dp, soft/diffuse).
 - Corner radius: large, ~24–28dp.
 - Internal padding: ~18–20dp all sides.
@@ -70,7 +71,8 @@ actually installed.
 
 - Pill-shaped, ~52–56dp tall, full width minus ~16dp side margins, fixed at the bottom above the
   gesture-nav pill, floating over scrolling content.
-- Background: light grey `#E3E2E8` (visibly darker than the screen bg so it reads as a control).
+- Background: dynamic neutral container (visibly darker than the screen bg so it reads as a
+  control).
 - Left: magnifying-glass search icon, dark grey.
 - Center-left: placeholder text "Search", dark grey, regular weight.
 - Right: vertical 3-dot overflow menu icon, dark grey.
@@ -91,9 +93,9 @@ actually installed.
 
 | Token | Value |
 |---|---|
-| Screen background | `#EEEDF3` |
-| Card background | `#F8F7FB` (≈95% white) |
-| Header text | `#1F1F1F`, medium, 18sp |
+| Screen background | Dynamic expressive neutral surface |
+| Card background | Dynamic lighter neutral surface |
+| Header text | Dynamic contrast-safe neutral, medium, 18sp |
 | Card radius | 24dp |
 | Card padding | 20dp |
 | Card elevation / shadow | 3dp, diffuse |
@@ -104,5 +106,5 @@ actually installed.
 | Icon inside avatar | 52dp, clipped to circle |
 | Icon spacing (h/v) | 22dp / 18dp |
 | Overflow cluster icon | 26dp, 4dp gaps |
-| Search bar height | 52dp, pill `#E3E2E8` |
+| Search bar height | 52dp, dynamic neutral-container pill |
 | Drag handle | 36 × 4dp, mid-grey |

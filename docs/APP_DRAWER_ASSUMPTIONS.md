@@ -5,8 +5,8 @@ All of these are candidates for correction after the next screenshot.
 
 ## Visual values (spec hexes/dps, exact choice noted)
 
-- **Card background** `#F8F7FB`: chosen as the exact card fill; spec allowed `#F8F7FB` or
-  `#FFFFFF`@~95%. Used `#F8F7FB`.
+- **Card background**: resolved from the active Material/Monet neutral palette as a lighter
+  surface than the drawer background.
 - **Card shadow**: implemented with a 3dp elevation (Android elevation tint) rather than a custom
   painted soft shadow; a soft/diffuse custom shadow may need tuning once seen on screen.
 - **Header text size**: spec said ~17–18sp; used **18sp**, weight **500 (medium)**, colour
@@ -53,9 +53,9 @@ Notes / assumptions:
 
 ## Light-theme scope
 
-- The light lavender background is forced **only in category-cards drawer mode**. Other drawer modes
+- The light dynamic neutral background is used **only in category-cards drawer mode**. Other drawer modes
   (alphabetical / folders) keep the user's normal theme.
-- The cards themselves, search bar, and drag handle use explicit light colours. The **search
+- The cards themselves, search bar, and drag handle use dynamic expressive surfaces. The **search
   results / category-page** sub-screens reuse theme-driven text colours, so on a dark system theme
   their text may not be ideal on the light lavender background — flagged as a known edge case.
 

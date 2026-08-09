@@ -31,6 +31,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.lawnchair.allapps.CategoryInfo
+import app.lawnchair.theme.color.tokens.ColorTokens
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.DeviceProfile
 import com.android.launcher3.Insettable
@@ -65,8 +66,8 @@ class CategoryAppsView @JvmOverloads constructor(
         backButton.setOnClickListener { onBack?.run() }
         // The category page is only reachable from the Smart Categorized drawer, which uses a
         // light lavender background, so the header is hard-coded to dark-on-light.
-        backButton.setColorFilter(android.graphics.Color.parseColor("#1F1F1F"))
-        titleView.setTextColor(android.graphics.Color.parseColor("#1F1F1F"))
+        backButton.setColorFilter(ColorTokens.ExpressiveAllAppsText.resolveColor(context))
+        titleView.setTextColor(ColorTokens.ExpressiveAllAppsText.resolveColor(context))
         appsList.layoutManager = GridLayoutManager(context, getAppsPerRow())
         categoryAppsAdapter = CategoryAppsAdapter(activityContext)
         appsList.adapter = categoryAppsAdapter
@@ -139,7 +140,7 @@ class CategoryAppsView @JvmOverloads constructor(
             icon.reset()
             icon.applyFromApplicationInfo(apps[position])
             // Light drawer background → keep app labels dark and readable.
-            icon.setTextColor(android.graphics.Color.parseColor("#1F1F1F"))
+            icon.setTextColor(ColorTokens.ExpressiveAllAppsText.resolveColor(icon.context))
         }
 
         override fun getItemCount(): Int = apps.size

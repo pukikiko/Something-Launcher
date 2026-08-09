@@ -184,7 +184,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 )
 
                 val backgroundColor = if (isCardsDrawerMode) {
-                    android.graphics.Color.parseColor("#E3E2E8")
+                    ColorTokens.ExpressiveAllAppsSearch.resolveColor(context)
                 } else if (supportBlur) {
                     ColorTokens.SearchboxHighlightBlur.resolveColor(context)
                 } else {
@@ -300,7 +300,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 if (isCardsDrawerMode) {
                     // Restore the "Search" placeholder on the bottom pill after losing focus.
                     input.setHint(R.string.label_search)
-                    input.setHintTextColor(android.graphics.Color.parseColor("#5F5F5F"))
+                    input.setHintTextColor(ColorTokens.ExpressiveAllAppsText.resolveColor(context))
                 }
             }
 
@@ -347,8 +347,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             (hint.layoutParams as MarginLayoutParams).marginStart = textOffset
             (input.layoutParams as MarginLayoutParams).marginStart = textOffset
             input.setHint(R.string.label_search)
-            input.setHintTextColor(android.graphics.Color.parseColor("#5F5F5F"))
-            input.setTextColor(android.graphics.Color.parseColor("#1F1F1F"))
+            input.setHintTextColor(ColorTokens.ExpressiveAllAppsText.resolveColor(context))
+            input.setTextColor(ColorTokens.ExpressiveAllAppsText.resolveColor(context))
             hint.isGone = true
         }
     }
