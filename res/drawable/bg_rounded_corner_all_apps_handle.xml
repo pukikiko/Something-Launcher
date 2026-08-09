@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dedicated drag-handle pill for the Smart Categorized app drawer (light theme, mid-grey). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#C4C4C6" />
+    <corners android:radius="@dimen/bottom_sheet_handle_corner_radius" />
+</shape>

@@ -63,6 +63,7 @@ enum class QsbIconId {
     MIC,
     LENS,
     CLEAR,
+    MENU,
 }
 
 /**
@@ -245,16 +246,41 @@ fun rememberAllAppsQsbState(
     queryEmpty: Boolean,
     showMic: Boolean,
     showLens: Boolean,
+    cardsMode: Boolean = false,
 ): QsbState {
     val searchLabel = stringResource(R.string.label_search)
     val voiceSearchLabel = stringResource(R.string.label_voice_search)
     val lensLabel = stringResource(R.string.label_lens)
     val clearLabel = stringResource(R.string.search_input_action_clear_results)
+    val overflowLabel = stringResource(R.string.label_menu)
 
-    return remember(searchProvider, themed, shouldShowIcons, queryEmpty, showMic, showLens, searchLabel, voiceSearchLabel, lensLabel, clearLabel) {
+    return remember(searchProvider, themed, shouldShowIcons, queryEmpty, showMic, showLens, cardsMode, searchLabel, voiceSearchLabel, lensLabel, clearLabel, overflowLabel) {
         val iconRes = if (themed && shouldShowIcons) searchProvider.themedIcon else searchProvider.icon
         val resId = if (shouldShowIcons) iconRes else R.drawable.ic_qsb_search
         val isGoogleProvider = searchProvider == Google || searchProvider == GoogleGo || searchProvider == PixelSearch
+
+        if (cardsMode) {
+            return@remember QsbState(
+                contentDescription = searchLabel,
+                startIcon = QsbIconState(
+                    id = QsbIconId.SEARCH,
+                    resId = R.drawable.ic_qsb_search_dark,
+                    themed = false,
+                    method = ThemingMethod.TINT,
+                    contentDescription = searchLabel,
+                ),
+                endIcons = listOf(
+                    QsbIconState(
+                        id = QsbIconId.MENU,
+                        resId = R.drawable.ic_more_vert_dots_dark,
+                        themed = false,
+                        method = ThemingMethod.TINT,
+                        contentDescription = overflowLabel,
+                        visible = true,
+                    ),
+                ),
+            )
+        }
 
         QsbState(
             contentDescription = searchLabel,

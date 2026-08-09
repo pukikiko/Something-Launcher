@@ -16,26 +16,12 @@
 
 package app.lawnchair.ui.preferences.destinations
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import app.lawnchair.preferences.PreferenceAdapter
+import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.preferences2.preferenceManager2
@@ -44,9 +30,10 @@ import app.lawnchair.ui.preferences.components.AppDrawerHapticFeedbackPreference
 import app.lawnchair.ui.preferences.components.NavigationActionPreference
 import app.lawnchair.ui.preferences.components.SuggestionsPreference
 import app.lawnchair.ui.preferences.components.colorpreference.ColorPreference
+import app.lawnchair.ui.preferences.components.controls.ListPreference
+import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
 import app.lawnchair.ui.preferences.components.controls.SliderPreference
 import app.lawnchair.ui.preferences.components.controls.SwitchPreference
-import app.lawnchair.ui.preferences.components.controls.SwitchPreferenceWithPreview
 import app.lawnchair.ui.preferences.components.controls.WarningPreference
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
@@ -74,10 +61,29 @@ fun AppDrawerPreferences(
         backArrowVisible = !LocalIsExpandedScreen.current,
         modifier = modifier,
     ) {
-        val drawerListAdapter = prefs.drawerList.getAdapter()
+        val drawerModeAdapter = prefs.drawerMode.getAdapter()
         Column {
-            DrawerLayoutPreference(drawerListAdapter)
-            ExpandAndShrink(visible = drawerListAdapter.state.value) {
+            ListPreference(
+                label = stringResource(id = R.string.layout),
+                adapter = drawerModeAdapter,
+                entries = listOf(
+                    ListPreferenceEntry(
+                        value = PreferenceManager.DRAWER_MODE_CARDS,
+                        label = { stringResource(id = R.string.drawer_mode_category_cards) },
+                    ),
+                    ListPreferenceEntry(
+                        value = PreferenceManager.DRAWER_MODE_ALPHABETICAL,
+                        label = { stringResource(id = R.string.feed_default) },
+                    ),
+                    ListPreferenceEntry(
+                        value = PreferenceManager.DRAWER_MODE_FOLDERS,
+                        label = { stringResource(id = R.string.caddy_beta) },
+                    ),
+                ),
+            )
+            ExpandAndShrink(
+                visible = drawerModeAdapter.state.value == PreferenceManager.DRAWER_MODE_ALPHABETICAL,
+            ) {
                 AppDrawerFolderPreferenceItem()
             }
         }
@@ -209,81 +215,4 @@ fun AppDrawerPreferences(
             )
         }
     }
-}
-
-@Composable
-private fun DrawerLayoutPreference(drawerListAdapter: PreferenceAdapter<Boolean>) {
-    SwitchPreferenceWithPreview(
-        label = stringResource(id = R.string.layout),
-        checked = !drawerListAdapter.state.value,
-        onCheckedChange = { drawerListAdapter.onChange(!it) },
-        disabledLabel = stringResource(id = R.string.feed_default),
-        disabledContent = {
-            Box(
-                modifier = Modifier
-                    .height(24.dp)
-                    .fillMaxWidth(0.8f)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        RoundedCornerShape(16.dp),
-                    ),
-            )
-
-            Column(modifier = Modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    modifier = Modifier,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    repeat(4) {
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                    CircleShape,
-                                ),
-                        )
-                    }
-                }
-            }
-        },
-        enabledLabel = stringResource(id = R.string.caddy_beta),
-        enabledContent = {
-            Box(
-                modifier = Modifier
-                    .height(24.dp)
-                    .fillMaxWidth(0.8f)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        RoundedCornerShape(16.dp),
-                    ),
-            )
-            Row(modifier = Modifier, horizontalArrangement = Arrangement.SpaceBetween) {
-                repeat(2) {
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier) {
-                        repeat(2) {
-                            Row(
-                                modifier = Modifier,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                repeat(2) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.surfaceVariant,
-                                                CircleShape,
-                                            ),
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
-            }
-        },
-    )
 }

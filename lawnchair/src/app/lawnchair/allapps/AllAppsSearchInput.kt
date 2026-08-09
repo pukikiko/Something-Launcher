@@ -15,6 +15,7 @@ import android.util.AttributeSet
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ViewTreeObserver
+import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalFocusChangeListener
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
@@ -84,6 +85,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     private lateinit var hint: TextView
     private lateinit var input: FallbackSearchInputView
     private lateinit var qsbShell: ComposeView
+
+    private val isCardsDrawerMode get() = prefs.drawerMode.get() == PreferenceManager.DRAWER_MODE_CARDS
 
     private val qsbMarginTopAdjusting = resources.getDimensionPixelSize(R.dimen.qsb_margin_top_adjusting)
     private val allAppsSearchVerticalOffset = resources.getDimensionPixelSize(R.dimen.all_apps_search_vertical_offset)
@@ -177,9 +180,12 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                     queryEmpty = queryEmpty,
                     showMic = voiceIntent != null,
                     showLens = lensIntent != null,
+                    cardsMode = isCardsDrawerMode,
                 )
 
-                val backgroundColor = if (supportBlur) {
+                val backgroundColor = if (isCardsDrawerMode) {
+                    android.graphics.Color.parseColor("#E3E2E8")
+                } else if (supportBlur) {
                     ColorTokens.SearchboxHighlightBlur.resolveColor(context)
                 } else {
                     ColorTokens.SearchboxHighlight.resolveColor(context)
@@ -223,6 +229,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                             QsbIconId.MIC -> voiceIntent?.let { context.startActivity(it) }
 
                             QsbIconId.LENS -> lensIntent?.let { context.startActivity(it) }
+
+                            QsbIconId.MENU -> Unit
 
                             QsbIconId.CLEAR -> {
                                 input.reset()
@@ -289,6 +297,11 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 focusedResultTitle = ""
                 input.setHint("")
                 hint.text = ""
+                if (isCardsDrawerMode) {
+                    // Restore the "Search" placeholder on the bottom pill after losing focus.
+                    input.setHint(R.string.label_search)
+                    input.setHintTextColor(android.graphics.Color.parseColor("#5F5F5F"))
+                }
             }
 
             if (::appsView.isInitialized) {
@@ -325,9 +338,27 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             isGone = true
             layoutParams.height = 0
         }
+
+        if (isCardsDrawerMode) {
+            // Bottom "Search" pill: push the hint/input text past the leading icon and style the
+            // placeholder for the light pill background.
+            val textOffset = resources.getDimensionPixelSize(R.dimen.qsb_icon_width) -
+                resources.getDimensionPixelSize(R.dimen.qsb_g_icon_marginStart)
+            (hint.layoutParams as MarginLayoutParams).marginStart = textOffset
+            (input.layoutParams as MarginLayoutParams).marginStart = textOffset
+            input.setHint(R.string.label_search)
+            input.setHintTextColor(android.graphics.Color.parseColor("#5F5F5F"))
+            input.setTextColor(android.graphics.Color.parseColor("#1F1F1F"))
+            hint.isGone = true
+        }
     }
 
     private fun setupPadding() {
+        if (isCardsDrawerMode) {
+            // The pill already carries its own horizontal margins; keep the content edge-to-edge.
+            setPadding(0, paddingTop, 0, paddingBottom)
+            return
+        }
         launcher.deviceProfile.let { dp ->
             val padding = dp.getAllAppsIconStartMargin(context)
             initialPaddingLeft = padding
@@ -494,15 +525,22 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     override fun setInsets(insets: Rect) {
         (layoutParams as MarginLayoutParams).apply {
-            topMargin = when {
-                hideSearchBar -> 0
+            if (isCardsDrawerMode) {
+                // Bottom "Search" pill: clear the drag handle and float above the gesture nav.
+                topMargin = 0
+                bottomMargin = insets.bottom + resources.getDimensionPixelSize(
+                    R.dimen.all_apps_category_search_bar_bottom_margin)
+            } else {
+                topMargin = when {
+                    hideSearchBar -> 0
 
-                // Sheet mode already pads the container with status-bar insets; only clear the
-                // drag handle. Re-applying insets.top here created the large empty band under it.
-                launcher.deviceProfile.shouldShowAllAppsOnSheet() ->
-                    resources.getDimensionPixelSize(R.dimen.bottom_sheet_handle_area_height)
+                    // Sheet mode already pads the container with status-bar insets; only clear the
+                    // drag handle. Re-applying insets.top here created the large empty band under it.
+                    launcher.deviceProfile.shouldShowAllAppsOnSheet() ->
+                        resources.getDimensionPixelSize(R.dimen.bottom_sheet_handle_area_height)
 
-                else -> max(-allAppsSearchVerticalOffset, insets.top - qsbMarginTopAdjusting)
+                    else -> max(-allAppsSearchVerticalOffset, insets.top - qsbMarginTopAdjusting)
+                }
             }
         }
         requestLayout()

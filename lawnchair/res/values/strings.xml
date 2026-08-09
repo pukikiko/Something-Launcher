@@ -123,6 +123,11 @@
     <string name="caddy_beta">Caddy (beta)</string>
     <string name="caddy">Caddy</string>
 
+    <string name="drawer_mode_category_cards">Category cards</string>
+    <string name="all_apps_category_content_description">%1$s category, %2$d apps</string>
+    <string name="all_apps_category_page_title">%1$s apps</string>
+    <string name="all_apps_category_back">Back to all apps</string>
+
     <string name="app_drawer_folder">App drawer folders</string>
     <string name="selected_apps">Selected apps</string>
     <string name="add_apps">Add apps</string>
@@ -829,6 +834,7 @@
 
     <!-- Dock search bar a11y -->
     <string name="label_search">Search</string>
+    <string name="label_menu">Menu</string>
     <string name="label_lens">Google Lens</string>
     <string name="label_voice_search">Voice Search</string>
 

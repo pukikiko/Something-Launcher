@@ -48,6 +48,9 @@ import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.views.ActivityContext;
 
+import app.lawnchair.allapps.CategoryInfo;
+import app.lawnchair.allapps.views.CategoryCardView;
+
 /**
  * Adapter for all the apps.
  *
@@ -74,6 +77,10 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
 
     // LC-Feature: Folder support in All Apps, can be any ID
     public static final int VIEW_TYPE_FOLDER = 1 << 10;
+
+    // LC-Feature: Nothing-style category card support in All Apps. Uses a high bit to avoid
+    // colliding with the search adapter provider's view types (1 << 10 .. 1 << 22).
+    public static final int VIEW_TYPE_CATEGORY_CARD = 1 << 23;
 
     // Common view type masks
     public static final int VIEW_TYPE_MASK_DIVIDER = VIEW_TYPE_ALL_APPS_DIVIDER;
@@ -122,6 +129,9 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
         // LC-Feature: Folder support in All Apps
         public FolderInfo folderInfo = new FolderInfo();
 
+        // LC-Feature: Nothing-style category card support in All Apps
+        public CategoryInfo categoryInfo = null;
+
         /**
          * Factory method for AppIcon AdapterItem
          */
@@ -144,8 +154,13 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
             return item;
         }
 
+        public static AdapterItem asCategoryCard(CategoryInfo categoryInfo) {
+            return new CategoryCardItem(categoryInfo);
+        }
+
         protected boolean isCountedForAccessibility() {
-            return viewType == VIEW_TYPE_ICON || viewType == VIEW_TYPE_FOLDER;
+            return viewType == VIEW_TYPE_ICON || viewType == VIEW_TYPE_FOLDER
+                    || viewType == VIEW_TYPE_CATEGORY_CARD;
         }
 
         /**
@@ -177,10 +192,43 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
         }
     }
 
+    /**
+     * Adapter item representing a Nothing-style category card. Contents are considered the same
+     * when the category title and number of apps are unchanged.
+     */
+    public static class CategoryCardItem extends AdapterItem {
+        public CategoryCardItem(CategoryInfo categoryInfo) {
+            super(VIEW_TYPE_CATEGORY_CARD);
+            this.categoryInfo = categoryInfo;
+        }
+
+        @Override
+        public boolean isSameAs(AdapterItem other) {
+            return other instanceof CategoryCardItem;
+        }
+
+        @Override
+        public boolean isContentSame(AdapterItem other) {
+            if (!(other instanceof CategoryCardItem otherItem)) {
+                return false;
+            }
+            CategoryInfo otherInfo = otherItem.categoryInfo;
+            return categoryInfo != null && otherInfo != null
+                    && categoryInfo.title.equals(otherInfo.title)
+                    && categoryInfo.apps.size() == otherInfo.apps.size();
+        }
+    }
+
+    /** Listener invoked when a category card is clicked (to open its full-page view). */
+    public interface OnCategoryCardClickListener {
+        void onCategoryCardClick(CategoryInfo categoryInfo);
+    }
+
     protected final T mActivityContext;
     protected final AlphabeticalAppsList<T> mApps;
     // The text to show when there are no search results and no market search handler.
     protected int mAppsPerRow;
+    protected OnCategoryCardClickListener mOnCategoryCardClickListener;
 
     protected final LayoutInflater mLayoutInflater;
     protected final OnClickListener mOnIconClickListener;
@@ -221,6 +269,10 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
 
     public void setIconFocusListener(OnFocusChangeListener focusListener) {
         mIconFocusListener = focusListener;
+    }
+
+    public void setOnCategoryCardClickListener(OnCategoryCardClickListener listener) {
+        mOnCategoryCardClickListener = listener;
     }
 
     /**
@@ -268,6 +320,10 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         mActivityContext.getDeviceProfile().getAllAppsProfile().getCellHeightPx()));
                 return new ViewHolder(fl);
+            case VIEW_TYPE_CATEGORY_CARD:
+                // LC-Feature: Nothing-style category card support in All Apps
+                return new ViewHolder(mLayoutInflater.inflate(
+                        R.layout.all_apps_category_card, parent, false));
             default:
                 if (mAdapterProvider.isViewSupported(viewType)) {
                     return mAdapterProvider.onCreateViewHolder(mLayoutInflater, parent, viewType);
@@ -370,6 +426,21 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
                 folderIcon.setOnLongClickListener(mOnIconLongClickListener);
                 container.addView(folderIcon);
                 break;
+            case VIEW_TYPE_CATEGORY_CARD: {
+                // LC-Feature: Nothing-style category card support in All Apps
+                CategoryInfo categoryInfo = mApps.getAdapterItems().get(position).categoryInfo;
+                View cardView = holder.itemView;
+                if (cardView instanceof CategoryCardView) {
+                    CategoryCardView categoryCard = (CategoryCardView) cardView;
+                    categoryCard.bind(categoryInfo, mAppsPerRow, mOnIconClickListener,
+                            mOnIconLongClickListener, () -> {
+                                if (mOnCategoryCardClickListener != null) {
+                                    mOnCategoryCardClickListener.onCategoryCardClick(categoryInfo);
+                                }
+                            });
+                }
+                break;
+            }
             default:
                 if (mAdapterProvider.isViewSupported(holder.getItemViewType())) {
                     mAdapterProvider.onBindView(holder, position);

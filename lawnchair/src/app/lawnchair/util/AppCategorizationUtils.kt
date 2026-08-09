@@ -53,3 +53,76 @@ fun categorizeAppsWithSystemAndGoogle(
 
     return finalCategorizedApps
 }
+
+/**
+ * Custom, loosely-defined category taxonomy used by the "Smart Categorized" app drawer.
+ *
+ * This deliberately does NOT use Android's standard app-category buckets. Apps are matched by
+ * package name against a fixed set of hand-picked groups; anything unmapped falls into "Others".
+ * The label set and the ordering below are the source of truth.
+ *
+ * @param apps List of apps to categorize
+ * @return LinkedMap of category names (in display order) to lists of apps in that category
+ */
+fun categorizeAppsForCardsDrawer(
+    apps: List<AppInfo>,
+): Map<String, List<AppInfo>> {
+    val categories = linkedMapOf(
+        "Social" to setOf(
+            "com.android.contacts",
+            "com.google.android.apps.contacts",
+            "com.google.android.gm",
+            "com.google.android.apps.messaging",
+            "com.google.android.dialer",
+        ),
+        "Entertainment" to setOf(
+            "com.google.android.youtube",
+            "com.google.android.apps.youtube.music",
+        ),
+        "Utilities" to setOf(
+            "com.android.calendar",
+            "com.android.chrome",
+            "com.google.android.deskclock",
+            "com.android.documentsui",
+            "com.google.android.googlequicksearchbox",
+            "com.android.vending",
+        ),
+        "Travel" to setOf(
+            "com.google.android.apps.maps",
+        ),
+        "Productivity" to setOf(
+            "com.google.android.apps.docs",
+        ),
+        "Multimedia Tools" to setOf(
+            "com.google.android.apps.photos",
+        ),
+    )
+
+    val result = linkedMapOf<String, MutableList<AppInfo>>()
+    categories.keys.forEach { result[it] = mutableListOf() }
+    val others = mutableListOf<AppInfo>()
+
+    apps.forEach { app ->
+        val packageName = app.targetPackage ?: return@forEach
+        val category = categories.entries.firstOrNull { (_, packages) ->
+            packageName in packages
+        }?.key
+        if (category != null) {
+            result[category]?.add(app)
+        } else {
+            others.add(app)
+        }
+    }
+
+    // Drop empty categories, but always keep "Others" last even if it ends up empty.
+    return buildMap {
+        result.forEach { (category, categoryApps) ->
+            if (categoryApps.isNotEmpty()) {
+                put(category, categoryApps)
+            }
+        }
+        if (others.isNotEmpty()) {
+            put("Others", others)
+        }
+    }
+}

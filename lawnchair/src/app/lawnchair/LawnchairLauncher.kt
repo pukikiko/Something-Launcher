@@ -292,10 +292,15 @@ class LawnchairLauncher : QuickstepLauncher() {
     }
 
     override fun onStateBack() {
-        val searchInput = mAppsView?.searchUiManager?.editText
-        val isSearching = mAppsView?.isSearching == true || searchInput?.hasFocus() == true
+        val appsView = mAppsView
+        if (appsView?.isCategoryPageOpen == true) {
+            appsView.closeCategoryPage()
+            return
+        }
+        val searchInput = appsView?.searchUiManager?.editText
+        val isSearching = appsView?.isSearching == true || searchInput?.hasFocus() == true
         if (isSearching) {
-            mAppsView?.searchUiManager?.resetSearch()
+            appsView?.searchUiManager?.resetSearch()
             allAppsController.animateAllAppsToNoScale()
         } else {
             super.onStateBack()

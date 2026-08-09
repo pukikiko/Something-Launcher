@@ -11,6 +11,7 @@ import app.lawnchair.data.folder.model.FolderViewModel
 import app.lawnchair.launcher
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
+import app.lawnchair.util.categorizeAppsForCardsDrawer
 import app.lawnchair.util.categorizeAppsWithSystemAndGoogle
 import app.lawnchair.util.observeOnce
 import com.android.launcher3.InvariantDeviceProfile.OnIDPChangeListener
@@ -87,52 +88,66 @@ class LawnchairAlphabeticalAppsList<T>(
 
     override fun addAppsWithSections(appList: List<AppInfo?>?, startPosition: Int): Int {
         if (appList.isNullOrEmpty()) return startPosition
-        val drawerListDefault = prefs.drawerList.get()
+        val drawerMode = prefs.drawerMode.get()
         filteredList.clear()
         var position = startPosition
 
         // Show app drawer folders only on main profile, to prevent state complexity
         if (isWorkOrPrivateSpace(appList)) return super.addAppsWithSections(appList, position)
 
-        if (!drawerListDefault) {
-            val validApps = appList.mapNotNull { it }
-            val finalCategorizedApps = categorizeAppsWithSystemAndGoogle(validApps, context)
+        when (drawerMode) {
+            PreferenceManager.DRAWER_MODE_CARDS -> {
+                val validApps = appList.mapNotNull { it }
+                val finalCategorizedApps = categorizeAppsForCardsDrawer(validApps)
 
-            finalCategorizedApps.forEach { (category, apps) ->
-                if (apps.size == 1) {
-                    mAdapterItems.add(AdapterItem.asApp(apps.first()))
-                } else {
-                    val folderInfo = FolderInfo().apply {
-                        title = category
-                        apps.forEach { add(it) }
-                    }
-                    mAdapterItems.add(AdapterItem.asFolder(folderInfo))
-                }
-                position++
-            }
-        } else {
-            folderList.forEach { folderEntry ->
-                val resolvedApps = folderEntry.itemComponentKeys.mapNotNull { keyString ->
-                    val componentKey = ComponentKey.fromString(keyString) ?: return@mapNotNull null
-                    appsStore.getApp(componentKey) as? AppInfo
-                }
-
-                if (resolvedApps.size > 1) {
-                    val folderInfo = FolderInfo().apply {
-                        id = folderEntry.id
-                        title = folderEntry.title
-                        resolvedApps.forEach { add(it) }
-                    }
-                    mAdapterItems.add(AdapterItem.asFolder(folderInfo))
+                finalCategorizedApps.forEach { (category, apps) ->
+                    mAdapterItems.add(AdapterItem.asCategoryCard(CategoryInfo(category, apps)))
                     position++
-
-                    if (prefs.folderApps.get()) {
-                        filteredList.addAll(resolvedApps)
-                    }
                 }
             }
-            val remainingApps = appList.filterNot { app -> filteredList.contains(app) && prefs.folderApps.get() }
-            position = super.addAppsWithSections(remainingApps, position)
+            PreferenceManager.DRAWER_MODE_FOLDERS -> {
+                val validApps = appList.mapNotNull { it }
+                val finalCategorizedApps = categorizeAppsWithSystemAndGoogle(validApps, context)
+
+                finalCategorizedApps.forEach { (category, apps) ->
+                    if (apps.size == 1) {
+                        mAdapterItems.add(AdapterItem.asApp(apps.first()))
+                    } else {
+                        val folderInfo = FolderInfo().apply {
+                            title = category
+                            apps.forEach { add(it) }
+                        }
+                        mAdapterItems.add(AdapterItem.asFolder(folderInfo))
+                    }
+                    position++
+                }
+            }
+            else -> {
+                folderList.forEach { folderEntry ->
+                    val resolvedApps = folderEntry.itemComponentKeys.mapNotNull { keyString ->
+                        val componentKey = ComponentKey.fromString(keyString) ?: return@mapNotNull null
+                        appsStore.getApp(componentKey) as? AppInfo
+                    }
+
+                    if (resolvedApps.size > 1) {
+                        val folderInfo = FolderInfo().apply {
+                            id = folderEntry.id
+                            title = folderEntry.title
+                            resolvedApps.forEach { add(it) }
+                        }
+                        mAdapterItems.add(AdapterItem.asFolder(folderInfo))
+                        position++
+
+                        if (prefs.folderApps.get()) {
+                            filteredList.addAll(resolvedApps)
+                        }
+                    }
+                }
+                val remainingApps = appList.filterNot { app ->
+                    filteredList.contains(app) && prefs.folderApps.get()
+                }
+                position = super.addAppsWithSections(remainingApps, position)
+            }
         }
 
         return position

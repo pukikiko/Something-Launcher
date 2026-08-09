@@ -189,11 +189,15 @@ public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
         @Override
         protected int incrementTotalHeight(Adapter adapter, int position, int heightUntilLastPos) {
             AllAppsGridAdapter.AdapterItem item = mApps.getAdapterItems().get(position);
-            // only account for the first icon in the row since they are the same size
-            // within a row
-            return (isIconViewType(item.viewType) && item.rowAppIndex != 0)
-                    ? heightUntilLastPos
-                    : (heightUntilLastPos + mCachedSizes.get(item.viewType));
+            if (isIconViewType(item.viewType) && item.rowAppIndex != 0) {
+                return heightUntilLastPos;
+            }
+            if (item.viewType == VIEW_TYPE_CATEGORY_CARD
+                    && getSpanIndex(position) != 0) {
+                // Cards are rendered two-per-row; only account for the first card in a row.
+                return heightUntilLastPos;
+            }
+            return heightUntilLastPos + mCachedSizes.get(item.viewType);
         }
     }
 
@@ -205,6 +209,11 @@ public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
             if (totalSpans % itemPerRow != 0) {
                 totalSpans *= itemPerRow;
             }
+        }
+        // LC-Feature: Category cards draw in a 2-column grid (each card spans half the row), so
+        // keep the total span count even.
+        if (totalSpans % 2 != 0) {
+            totalSpans *= 2;
         }
         mGridLayoutMgr.setSpanCount(totalSpans);
     }
@@ -229,6 +238,9 @@ public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
             int viewType = items.get(position).viewType;
             if (isIconViewType(viewType)) {
                 return totalSpans / mAppsPerRow;
+            } else if (viewType == VIEW_TYPE_CATEGORY_CARD) {
+                // LC-Feature: Category cards are half-width so two cards sit side by side.
+                return totalSpans / 2;
             } else {
                 if (mAdapterProvider.isViewSupported(viewType)) {
                     return totalSpans / mAdapterProvider.getItemsPerRow(viewType, mAppsPerRow);

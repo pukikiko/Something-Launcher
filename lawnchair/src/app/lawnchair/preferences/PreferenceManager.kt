@@ -171,6 +171,7 @@ class PreferenceManager @Inject constructor(
     val wallpaperBlurFactorThreshold = FloatPref("pref_wallpaperBlurFactor", 3.0F, recreate)
 
     val drawerList = BoolPref("pref_drawerList", true, recreate)
+    val drawerMode = StringPref("pref_drawerMode", DRAWER_MODE_CARDS, recreate)
     val folderApps = BoolPref("pref_hideFolderApps", true, reloadGrid)
 
     val recentsActionScreenshot = BoolPref("pref_recentsActionScreenshot", !isOnePlusStock)
@@ -209,11 +210,22 @@ class PreferenceManager @Inject constructor(
                     hotseatColumns.set(gridState.hotseatCount)
                 }
             }
+            if (oldVersion < 3) {
+                // Migrate the legacy boolean drawer list pref to the new 3-way drawer mode.
+                if (sp.contains("pref_drawerList") && !sp.contains("pref_drawerMode")) {
+                    val legacy = sp.getBoolean("pref_drawerList", true)
+                    drawerMode.set(if (legacy) DRAWER_MODE_ALPHABETICAL else DRAWER_MODE_FOLDERS)
+                }
+            }
         }
     }
 
     companion object {
-        private const val CURRENT_VERSION = 2
+        private const val CURRENT_VERSION = 3
+
+        const val DRAWER_MODE_CARDS = "cards"
+        const val DRAWER_MODE_ALPHABETICAL = "alphabetical"
+        const val DRAWER_MODE_FOLDERS = "folders"
 
         @JvmField
         val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getPreferenceManager)

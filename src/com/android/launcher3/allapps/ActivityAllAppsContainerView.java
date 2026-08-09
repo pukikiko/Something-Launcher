@@ -115,7 +115,9 @@ import java.util.stream.Stream;
 
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 import static com.topjohnwu.superuser.internal.Utils.context;
+import app.lawnchair.allapps.CategoryInfo;
 import app.lawnchair.allapps.LawnchairAlphabeticalAppsList;
+import app.lawnchair.allapps.views.CategoryAppsView;
 import app.lawnchair.font.FontManager;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceManager2;
@@ -202,6 +204,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     private int mNavBarScrimHeight = 0;
     public SearchRecyclerView mSearchRecyclerView;
     protected SearchAdapterProvider<?> mMainAdapterProvider;
+    private CategoryAppsView mCategoryAppsView;
+    private boolean mCategoryPageOpen;
     private View mBottomSheetHandleArea;
     private View mBottomSheetHandle;
     private boolean mHasWorkApps;
@@ -308,6 +312,10 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         mAH.set(SEARCH, new AdapterHolder(SEARCH,
                 new LawnchairAlphabeticalAppsList<>(mActivityContext, mAllAppsStore, null, null)));
 
+        // LC-Feature: Nothing-style category cards. Route card clicks to the full-page category
+        // view.
+        mAH.get(AdapterHolder.MAIN).mAdapter.setOnCategoryCardClickListener(this::openCategoryPage);
+
         getLayoutInflater().inflate(R.layout.all_apps_content, this);
         mHeader = findViewById(R.id.all_apps_header);
         mAdditionalHeaderRows.clear();
@@ -331,8 +339,18 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             // focused by default. It's added to end of the children list, so it needs to be
             // explicitly marked as focused by default.
             mSearchContainer.setFocusedByDefault(true);
+            positionSearchBarForCardsMode();
         }
         mSearchUiManager = (SearchUiManager) mSearchContainer;
+
+        // LC-Feature: Nothing-style category cards. The category page is an overlay covering the
+        // whole drawer; it's added last so it draws on top of everything else.
+        mCategoryAppsView = (CategoryAppsView) getLayoutInflater().inflate(
+                R.layout.all_apps_category_page, this, false);
+        mCategoryAppsView.setVisibility(GONE);
+        mCategoryAppsView.setOnBack(this::closeCategoryPage);
+        addView(mCategoryAppsView, new LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
 
     public List<AllAppsRow> getAdditionalHeaderRows() {
@@ -434,6 +452,43 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     }
 
     /**
+     * Opens the full-page view for the given category, covering the drawer with a grid of that
+     * category's apps.
+     */
+    public void openCategoryPage(CategoryInfo categoryInfo) {
+        if (mCategoryAppsView == null || mCategoryPageOpen) {
+            return;
+        }
+        mCategoryPageOpen = true;
+        mSearchContainer.setVisibility(GONE);
+        mHeader.setVisibility(GONE);
+        getAppsRecyclerViewContainer().setVisibility(GONE);
+        getSearchRecyclerView().setVisibility(GONE);
+        mFastScroller.setVisibility(GONE);
+        mCategoryAppsView.setBackgroundColor(getBackgroundColor());
+        mCategoryAppsView.showCategory(categoryInfo);
+        mCategoryAppsView.bringToFront();
+        updateBackgroundVisibility(mActivityContext.getDeviceProfile());
+    }
+
+    /** Closes the full-page category view and returns to the normal drawer layout. */
+    public void closeCategoryPage() {
+        if (!mCategoryPageOpen) {
+            return;
+        }
+        mCategoryPageOpen = false;
+        mCategoryAppsView.clear();
+        updateSearchResultsVisibility();
+        mFastScroller.setVisibility(showFastScroller ? VISIBLE : INVISIBLE);
+        mSearchContainer.setVisibility(isAppDrawerSearchBarHidden() ? GONE : VISIBLE);
+    }
+
+    /** Returns whether the full-page category view is currently shown. */
+    public boolean isCategoryPageOpen() {
+        return mCategoryPageOpen;
+    }
+
+    /**
      * Sets results list for search
      */
     public void setSearchResults(ArrayList<AdapterItem> results) {
@@ -527,6 +582,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         if (rv == null) {
             return true;
         }
+        // The category page list is not bound to a fast scroller, so fall back to a plain
+        // scroll-offset check to decide whether the container can be pulled down.
+        if (isCategoryPageOpen()) {
+            return rv.computeVerticalScrollOffset() == 0;
+        }
         if (rv.getScrollbar() != null
                 && rv.getScrollbar().getThumbOffsetY() >= 0
                 && dragLayer.isEventOverView(rv.getScrollbar(), ev)) {
@@ -556,6 +616,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
      * @param exitSearch Whether to force exit the search state and return to A-Z apps list.
      */
     public void reset(boolean animate, boolean exitSearch) {
+        // Close any open category page.
+        closeCategoryPage();
         // Scroll Main and Work RV to top. Search RV is done in `resetSearch`.
         if (!PreferenceCacheExtensionsKt.firstCached(pref2.getRememberPosition())) {
             for (int i = 0; i < mAH.size(); i++) {
@@ -643,7 +705,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
      * @return {@code true} if back gesture should exit search rather than change launcher state.
       */
     public boolean shouldBackExitSearch() {
-        return isSearching();
+        return isSearching() || isCategoryPageOpen();
     }
 
     @Override
@@ -817,7 +879,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
         removeCustomRules(rvContainer);
         removeCustomRules(getSearchRecyclerView());
-        if (isAppDrawerSearchBarHidden()) {
+        if (isAppDrawerSearchBarHidden() || isCardsDrawerMode()) {
             layoutWithoutSearchContainer(rvContainer, showTabs);
             layoutWithoutSearchContainer(getSearchRecyclerView(), /* tabs= */ false);
         } else if (isSearchBarFloating()) {
@@ -856,7 +918,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         mAdditionalHeaderRows.forEach(row -> mHeader.onPluginConnected(row, mActivityContext));
 
         removeCustomRules(mHeader);
-        if (hideSearchBar) {
+        if (hideSearchBar || isCardsDrawerMode()) {
             layoutWithoutSearchContainer(mHeader, false /* includeTabsMargin */);
         } else if (isSearchBarFloating()) {
             alignParentTop(mHeader, false /* includeTabsMargin */);
@@ -1056,6 +1118,36 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         return PreferenceCacheExtensionsKt.firstCached(pref2.getHideAppDrawerSearchBar());
     }
 
+    // LC-Feature: Smart Categorized drawer. When enabled, cards render in a 2-column grid, the
+    // drawer uses a light lavender background and the search bar floats at the bottom.
+    private boolean isCardsDrawerMode() {
+        return PreferenceManager.DRAWER_MODE_CARDS.equals(pref.getDrawerMode().get());
+    }
+
+    /**
+     * Anchors the search bar to the bottom of the drawer and styles it as a floating pill
+     * (category-cards mode only).
+     */
+    private void positionSearchBarForCardsMode() {
+        if (!isCardsDrawerMode() || mSearchContainer == null) {
+            return;
+        }
+        if (!(mSearchContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams)) {
+            return;
+        }
+        RelativeLayout.LayoutParams layoutParams =
+                (RelativeLayout.LayoutParams) mSearchContainer.getLayoutParams();
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+        layoutParams.height = getContext().getResources().getDimensionPixelSize(
+                R.dimen.all_apps_category_search_bar_height);
+        int hMargin = getContext().getResources().getDimensionPixelSize(
+                R.dimen.all_apps_category_search_bar_h_margin);
+        layoutParams.setMarginStart(hMargin);
+        layoutParams.setMarginEnd(hMargin);
+        mSearchContainer.setLayoutParams(layoutParams);
+        mSearchContainer.bringToFront();
+    }
+
     private void layoutBelowSearchContainer(View v, boolean includeTabsMargin) {
         if (!(v.getLayoutParams() instanceof RelativeLayout.LayoutParams)) {
             return;
@@ -1202,6 +1294,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 holder.mRecyclerView.getRecycledViewPool().clear();
             }
         }
+        if (mCategoryAppsView != null) {
+            mCategoryAppsView.onDeviceProfileChanged(dp);
+        }
         updateBackgroundVisibility(dp);
 
         boolean needsInvalidate = false;
@@ -1304,6 +1399,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     /** The current active recycler view (A-Z list from one of the profiles, or search results). */
     public AllAppsRecyclerView getActiveRecyclerView() {
+        if (isCategoryPageOpen()) {
+            return mCategoryAppsView.getAppsRecyclerView();
+        }
         if (isSearching()) {
             return getSearchRecyclerView();
         }
@@ -1448,10 +1546,18 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     private void applyAdapterSideAndBottomPaddings(DeviceProfile grid) {
         int bottomPadding = Math.max(mInsets.bottom, mNavBarScrimHeight);
+        final int sidePadding;
+        if (isCardsDrawerMode()) {
+            // Cards use their own margin-based spacing, so the list only needs a small outer pad.
+            sidePadding = getResources().getDimensionPixelSize(
+                    R.dimen.all_apps_category_grid_padding);
+        } else {
+            sidePadding = grid.allAppsPadding.left;
+        }
         mAH.forEach(adapterHolder -> {
             adapterHolder.mPadding.bottom = bottomPadding;
-            adapterHolder.mPadding.left = grid.allAppsPadding.left;
-            adapterHolder.mPadding.right = grid.allAppsPadding.right;
+            adapterHolder.mPadding.left = sidePadding;
+            adapterHolder.mPadding.right = sidePadding;
             adapterHolder.applyPadding();
         });
     }
@@ -1544,6 +1650,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     @VisibleForTesting
     public View getContentView() {
+        if (isCategoryPageOpen()) {
+            return mCategoryAppsView;
+        }
         return isSearching() ? getSearchRecyclerView() : getAppsRecyclerViewContainer();
     }
 
@@ -1872,6 +1981,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 }
                 if (isSearchBarFloating()) {
                     bottomOffset += mSearchContainer.getHeight();
+                }
+                if (isCardsDrawerMode() && mSearchContainer != null) {
+                    bottomOffset += mSearchContainer.getHeight()
+                            + getResources().getDimensionPixelSize(
+                            R.dimen.all_apps_category_search_bar_bottom_margin);
                 }
                 mRecyclerView.setPadding(mPadding.left, mPadding.top, mPadding.right,
                         mPadding.bottom + bottomOffset);
