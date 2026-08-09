@@ -23,8 +23,8 @@
 - Card order: left-to-right, top-to-bottom. An odd last row leaves an empty slot (not stretched).
 - Outer screen padding: ~16–20dp left/right and top.
 - Gap between cards: ~14–16dp horizontal and vertical.
-- Cards are **masonry / staggered height** — each card sizes to its own icon grid (Entertainment
-  with 2 icons is visibly shorter than Utilities with 6+).
+- Cards use a consistent expressive surface height so the two-column rows align like the reference;
+  the icon grid remains sparse for categories with fewer apps.
 
 ## 3. Card component
 
@@ -42,7 +42,7 @@
 - **Primary icon**: ~64dp diameter circle. Each app icon sits centered on a plain white circular
   background (avatar look); square/adaptive icons are clipped/masked to a circle with white
   padding — the raw launcher icon is never dropped in as-is.
-- Spacing: ~20–24dp horizontal between circles, ~16–20dp vertical.
+- Spacing: ~12dp horizontal between circles, ~16–20dp vertical.
 - **Overflow behavior** ("Utilities" card): when a category has more apps than fit as full 64dp
   circles in the visible slots, the **last** grid slot becomes a compact **2×2 mini-cluster**
   (~26–28dp icons, ~4dp gaps, no white circle backgrounds) instead of spawning more full-size rows.
@@ -102,9 +102,9 @@ actually installed.
 | Grid columns | 2 |
 | Outer padding | 16dp |
 | Card gap (h+v) | 14dp |
-| Avatar circle | 64dp, white |
-| Icon inside avatar | 52dp, clipped to circle |
-| Icon spacing (h/v) | 22dp / 18dp |
+| Avatar circle | 64dp |
+| Icon inside avatar | 64dp (fills the circle), clipped to a circle |
+| Icon spacing (h/v) | 12dp / 18dp |
 | Overflow cluster icon | 26dp, 4dp gaps |
 | Search bar height | 52dp, dynamic neutral-container pill |
 | Drag handle | 36 × 4dp, mid-grey |

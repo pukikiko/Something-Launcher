@@ -11,20 +11,20 @@ All of these are candidates for correction after the next screenshot.
   painted soft shadow; a soft/diffuse custom shadow may need tuning once seen on screen.
 - **Header text size**: spec said ~17–18sp; used **18sp**, weight **500 (medium)**, colour
   `#1F1F1F`.
-- **Icon spacing**: spec said ~20–24dp horizontal / ~16–20dp vertical; used **22dp** horizontal /
+- **Icon spacing**: tuned to fit two 64dp avatars inside the card at launcher density: **12dp** horizontal /
   **18dp** vertical.
-- **Icon inside avatar**: 64dp white circle with the app icon drawn at **52dp** (≈6dp white ring).
-  The icon is *clipped to a circle* via the avatar outline.
+- **Icon inside avatar**: 64dp circle. The app icon is rendered at the full **64dp** so the icon
+  itself fills the entire circle; it is *clipped to a circle* via the avatar outline.
 - **Overflow cluster**: icons at **26dp** with **4dp** gaps inside a 64dp cell (spec: ~26–28dp).
 
 ## Overflow formula (N)
 
 Spec: "show first `N-1` apps as full avatars, then if remaining apps > 1, pack up to 4 into a
 2×2 cluster." The free parameter `N` is not pinned in the spec. Chosen:
-- `MAX_FULL_AVATARS = 4` (2 rows × 2 columns).
-- So `N = 5`: first **4** apps render as full avatars; the 5th cell position becomes the cluster
-  when there are more than 4 apps.
-- Examples: Utilities (7 apps) → 4 full avatars + cluster(3 mini icons). Entertainment (2 apps) →
+- `MAX_FULL_AVATARS = 3` (the first row plus the leading slot of the second row).
+- So `N = 4`: first **3** apps render as full avatars; the 4th cell position becomes the cluster
+  when there are more than 3 apps.
+- Examples: Utilities (7 apps) → 3 full avatars + cluster(4 mini icons). Entertainment (2 apps) →
   2 full avatars, no cluster.
 - If a category has more than 4 overflow apps, extras are logged (`Log.w`) and dropped (not crashed).
 
@@ -51,13 +51,12 @@ Notes / assumptions:
   being installed; on a device without them those cards simply won't appear.
 - Category ordering follows the table order (§5). "Others" is last.
 
-## Light-theme scope
+## Theme scope
 
-- The light dynamic neutral background is used **only in category-cards drawer mode**. Other drawer modes
-  (alphabetical / folders) keep the user's normal theme.
-- The cards themselves, search bar, and drag handle use dynamic expressive surfaces. The **search
-  results / category-page** sub-screens reuse theme-driven text colours, so on a dark system theme
-  their text may not be ideal on the light lavender background — flagged as a known edge case.
+- Dynamic expressive surfaces are used **only in category-cards drawer mode**. Other drawer modes
+  (alphabetical / folders) keep their existing theme behavior.
+- Category cards, search bar, avatars, text, and drag handle all resolve through day/night dynamic
+  tokens, so the drawer follows the system theme while retaining the reference's tonal hierarchy.
 
 ## Search bar
 
@@ -73,10 +72,9 @@ Notes / assumptions:
 
 ## Known limitations / edge cases
 
-1. When a category has > 8 apps (4 avatars + 4 in cluster), the 9th+ apps are logged and hidden.
-2. The category full-page view (opened by tapping a card) uses the lavender background with
-   hard-coded dark header/labels. Search-results state in the drawer is not re-themed light, so
-   on a dark system theme its icons/labels may have lower contrast on the lavender sheet.
+1. When a category has > 7 apps (3 avatars + 4 in cluster), the 8th+ apps are logged and hidden.
+2. The category full-page view (opened by tapping a card) follows the categorized drawer's dynamic
+   day/night palette. Search-results state continues to use the existing search theme.
 3. The 2-column grid applies to category cards; work/private-space UI is untouched.
-4. In cards mode the category-page header text/back button and app labels are hard-coded dark
-   (#1F1F1F); if the drawer theme is ever made light globally this can be simplified.
+4. The reference screenshot shows the light branch; dark mode uses the corresponding expressive
+   dark neutral surfaces and contrast-safe text.

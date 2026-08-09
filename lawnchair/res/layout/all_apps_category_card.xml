@@ -23,8 +23,12 @@
     android:clipChildren="false"
     android:clipToPadding="false"
     android:clickable="true"
-    android:focusable="true"
-    android:orientation="vertical"
-    android:layout_margin="@dimen/all_apps_category_card_margin"
-    android:padding="@dimen/all_apps_category_card_padding" >
+     android:focusable="true"
+     android:minHeight="@dimen/all_apps_category_card_min_height"
+     android:orientation="vertical"
+     android:layout_margin="@dimen/all_apps_category_card_margin"
+     android:paddingLeft="@dimen/all_apps_category_card_padding"
+     android:paddingTop="@dimen/all_apps_category_card_padding_top"
+     android:paddingRight="@dimen/all_apps_category_card_padding"
+     android:paddingBottom="@dimen/all_apps_category_card_padding" >
 </app.lawnchair.allapps.views.CategoryCardView>

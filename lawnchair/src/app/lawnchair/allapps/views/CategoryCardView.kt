@@ -80,7 +80,10 @@ class CategoryCardView @JvmOverloads constructor(
         }
         addView(titleView, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT))
+            ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = resources.getDimensionPixelSize(
+                    R.dimen.all_apps_category_header_bottom_gap)
+            })
         addView(iconsContainer, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -129,29 +132,34 @@ class CategoryCardView @JvmOverloads constructor(
         val vGap = resources.getDimensionPixelSize(R.dimen.all_apps_category_icon_v_gap)
         val inflater = LayoutInflater.from(context)
 
-        // Full-size avatar rows.
-        val avatarRows = ceil(fullApps.size / 2.0).toInt()
-        for (row in 0 until avatarRows) {
+        // Full-size avatars and the overflow cluster share one grid. The cluster is the final
+        // cell, rather than an extra row, so Utilities stays the same height as Social.
+        val cellCount = fullApps.size + if (clusterApps.isNotEmpty()) 1 else 0
+        val rows = ceil(cellCount / 2.0).toInt()
+        for (row in 0 until rows) {
             val rowLayout = rowLayout()
             for (col in 0 until 2) {
                 val index = row * 2 + col
-                val app = fullApps.getOrNull(index) ?: continue
-                val icon = inflater.inflate(
-                    R.layout.all_apps_category_icon, rowLayout, false) as BubbleTextView
-                bindIcon(icon, app, iconClickListener, iconLongClickListener)
                 val lp = LinearLayout.LayoutParams(avatarSize, avatarSize)
                 if (col == 0) lp.marginEnd = hGap
-                rowLayout.addView(icon, lp)
+                if (index < fullApps.size) {
+                    val icon = inflater.inflate(
+                        R.layout.all_apps_category_icon, rowLayout, false) as BubbleTextView
+                    bindIcon(
+                        icon,
+                        fullApps[index],
+                        iconClickListener,
+                        iconLongClickListener,
+                        withAvatar = true,
+                    )
+                    rowLayout.addView(icon, lp)
+                } else if (clusterApps.isNotEmpty() && index == fullApps.size) {
+                    rowLayout.addView(
+                        buildCluster(clusterApps, inflater, iconClickListener, iconLongClickListener),
+                        lp)
+                }
             }
-            iconsContainer.addView(rowLayout, rowLayoutParams(vGap, isLast = row == avatarRows - 1 && clusterApps.isEmpty()))
-        }
-
-        // Overflow cluster in the last grid slot.
-        if (clusterApps.isNotEmpty()) {
-            val rowLayout = rowLayout()
-            rowLayout.addView(buildCluster(clusterApps, inflater, iconClickListener, iconLongClickListener),
-                LinearLayout.LayoutParams(avatarSize, avatarSize))
-            iconsContainer.addView(rowLayout, rowLayoutParams(vGap, isLast = true))
+            iconsContainer.addView(rowLayout, rowLayoutParams(vGap, isLast = row == rows - 1))
         }
 
         setOnClickListener { openCategory.run() }
@@ -176,13 +184,22 @@ class CategoryCardView @JvmOverloads constructor(
         app: com.android.launcher3.model.data.AppInfo,
         iconClickListener: View.OnClickListener,
         iconLongClickListener: View.OnLongClickListener,
+        withAvatar: Boolean,
     ) {
         icon.applyFromApplicationInfo(app)
-        icon.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(ColorTokens.ExpressiveAllAppsAvatar.resolveColor(context))
+        if (withAvatar) {
+            icon.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(ColorTokens.ExpressiveAllAppsAvatar.resolveColor(context))
+            }
+        } else {
+            icon.background = null
         }
-        // Icon-only mini grid, matching the avatar look.
+        // BubbleTextView normally reserves a label line, which shifts compound drawables upward.
+        icon.setCenterVertically(false)
+        icon.setPadding(0, 0, 0, 0)
+        icon.setCompoundDrawablePadding(0)
+        icon.text = ""
         icon.setTextVisibility(false)
         icon.setOnClickListener(iconClickListener)
         icon.setOnLongClickListener(iconLongClickListener)
@@ -210,7 +227,7 @@ class CategoryCardView @JvmOverloads constructor(
                 val app = clusterApps.getOrNull(index) ?: continue
                 val icon = inflater.inflate(
                     R.layout.all_apps_category_cluster_icon, rowLayout, false) as BubbleTextView
-                bindIcon(icon, app, iconClickListener, iconLongClickListener)
+                bindIcon(icon, app, iconClickListener, iconLongClickListener, withAvatar = false)
                 val lp = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -230,7 +247,7 @@ class CategoryCardView @JvmOverloads constructor(
         private const val TAG = "CategoryCardView"
         // Number of full-size avatar slots before the cluster takes over the last cell.
         // This is N-1 from the design spec (N = MAX_FULL_AVATARS + 1).
-        private const val MAX_FULL_AVATARS = 4
+        private const val MAX_FULL_AVATARS = 3
         private const val MAX_CLUSTER_ICONS = 4
     }
 }

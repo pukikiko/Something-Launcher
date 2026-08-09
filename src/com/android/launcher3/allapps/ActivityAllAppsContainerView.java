@@ -323,6 +323,10 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         mBottomSheetBackground = findViewById(R.id.bottom_sheet_background);
         mBottomSheetHandleArea = findViewById(R.id.bottom_sheet_handle_area);
         mBottomSheetHandle = findViewById(R.id.bottom_sheet_handle);
+        if (isCardsDrawerMode() && mBottomSheetHandle.getBackground() != null) {
+            mBottomSheetHandle.getBackground().setTint(
+                    ColorTokens.ExpressiveAllAppsHandle.resolveColor(mActivityContext));
+        }
         mSearchRecyclerView = findViewById(R.id.search_results_list_view);
         mFastScroller = findViewById(R.id.fast_scroller);
         mFastScroller.setPopupView(findViewById(R.id.fast_scroller_popup));
@@ -907,7 +911,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 getCurrentPage(),
                 tabsHidden);
 
-        int padding = (hideSearchBar && !mUsingTabs) ? 0 : mHeader.getMaxTranslation();
+        int padding = ((hideSearchBar || isCardsDrawerMode()) && !mUsingTabs)
+                ? 0 : mHeader.getMaxTranslation();
         mAH.forEach(adapterHolder -> {
             adapterHolder.mPadding.top = padding;
             adapterHolder.applyPadding();
@@ -1036,7 +1041,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     // LC-Note: For listener to avoid querying stale value.
     private boolean updateBottomSheetBackgroundColor(boolean blurEnabled) {
         int defaultColor;
-        if (!Flags.allAppsBlur()) {
+        if (isCardsDrawerMode()) {
+            defaultColor = ColorTokens.ExpressiveAllAppsBackground.resolveColor(mActivityContext);
+        } else if (!Flags.allAppsBlur()) {
             defaultColor = mBottomSheetBackgroundColorLegacy;
         } else if (!blurEnabled) {
             defaultColor = mBottomSheetBackgroundColorBlurFallback;

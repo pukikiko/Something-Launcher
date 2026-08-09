@@ -1,4 +1,11 @@
-# Lawnchair 16
+# Something Launcher
+
+> [!NOTE]
+> This is a fork of **Lawnchair 16**.
+>
+> The main change in this fork is a **Nothing Launcher–style app drawer** with
+> **app category cards**, replacing the traditional alphabetical app list with
+> an organized, card-based view of your apps grouped by category.
 
 [![Build debug APK](https://github.com/LawnchairLauncher/lawnchair/actions/workflows/ci.yml/badge.svg)](https://github.com/LawnchairLauncher/lawnchair/actions/workflows/ci.yml)
 [![Build release APK](https://github.com/LawnchairLauncher/lawnchair/actions/workflows/release_update.yml/badge.svg)](https://github.com/LawnchairLauncher/lawnchair/actions/workflows/release_update.yml)
