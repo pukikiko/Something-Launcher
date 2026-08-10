@@ -83,6 +83,8 @@ import com.android.launcher3.Insettable;
 import com.android.launcher3.InsettableFrameLayout;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.folder.Folder;
+import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
 import com.android.launcher3.allapps.search.AllAppsSearchUiDelegate;
 import com.android.launcher3.allapps.search.DefaultSearchAdapterProvider;
@@ -91,6 +93,8 @@ import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.keyboard.FocusedItemDecorator;
 import com.android.launcher3.keyboard.ViewGroupFocusHelper;
 import com.android.launcher3.model.StringCache;
+import com.android.launcher3.model.data.AppInfo;
+import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.util.UserIconInfo;
@@ -117,7 +121,6 @@ import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 import static com.topjohnwu.superuser.internal.Utils.context;
 import app.lawnchair.allapps.CategoryInfo;
 import app.lawnchair.allapps.LawnchairAlphabeticalAppsList;
-import app.lawnchair.allapps.views.CategoryAppsView;
 import app.lawnchair.font.FontManager;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceManager2;
@@ -141,6 +144,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     public static final float FLING_VELOCITY_MULTIPLIER = 1200f;
     protected static final String BUNDLE_KEY_CURRENT_PAGE = "launcher.allapps.current_page";
     private static final long DEFAULT_SEARCH_TRANSITION_DURATION_MS = 300;
+    // LC-Feature: Categories up to this size render every app as a full avatar on the card, so
+    // the category folder popup is only opened for cards with more apps than this.
+    private static final int MAX_APPS_PER_CARD_GRID = 4;
     // Render the header protection at all times to debug clipping issues.
     private static final boolean DEBUG_HEADER_PROTECTION = false;
     /** Context of an activity or window that is inflating this container. */
@@ -204,8 +210,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     private int mNavBarScrimHeight = 0;
     public SearchRecyclerView mSearchRecyclerView;
     protected SearchAdapterProvider<?> mMainAdapterProvider;
-    private CategoryAppsView mCategoryAppsView;
-    private boolean mCategoryPageOpen;
     private View mBottomSheetHandleArea;
     private View mBottomSheetHandle;
     private boolean mHasWorkApps;
@@ -312,9 +316,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         mAH.set(SEARCH, new AdapterHolder(SEARCH,
                 new LawnchairAlphabeticalAppsList<>(mActivityContext, mAllAppsStore, null, null)));
 
-        // LC-Feature: Nothing-style category cards. Route card clicks to the full-page category
-        // view.
-        mAH.get(AdapterHolder.MAIN).mAdapter.setOnCategoryCardClickListener(this::openCategoryPage);
+        // LC-Feature: Nothing-style category cards. Tapping a card opens a standard folder popup
+        // showing that category's apps.
+        mAH.get(AdapterHolder.MAIN).mAdapter.setOnCategoryCardClickListener(this::openCategoryFolder);
 
         getLayoutInflater().inflate(R.layout.all_apps_content, this);
         mHeader = findViewById(R.id.all_apps_header);
@@ -323,9 +327,18 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         mBottomSheetBackground = findViewById(R.id.bottom_sheet_background);
         mBottomSheetHandleArea = findViewById(R.id.bottom_sheet_handle_area);
         mBottomSheetHandle = findViewById(R.id.bottom_sheet_handle);
-        if (isCardsDrawerMode() && mBottomSheetHandle.getBackground() != null) {
-            mBottomSheetHandle.getBackground().setTint(
-                    ColorTokens.ExpressiveAllAppsHandle.resolveColor(mActivityContext));
+        if (isCardsDrawerMode()) {
+            // LC-Feature: Smart Categorized drawer. The shared handle drawable/width are
+            // theme-driven defaults for every other drawer mode; only here do we widen it to
+            // 36dp and tint it with the expressive neutral token used by the cards drawer.
+            if (mBottomSheetHandle.getBackground() != null) {
+                mBottomSheetHandle.getBackground().setTint(
+                        ColorTokens.ExpressiveAllAppsHandle.resolveColor(mActivityContext));
+            }
+            ViewGroup.LayoutParams handleLp = mBottomSheetHandle.getLayoutParams();
+            handleLp.width = getResources().getDimensionPixelSize(
+                    R.dimen.all_apps_category_handle_width);
+            mBottomSheetHandle.setLayoutParams(handleLp);
         }
         mSearchRecyclerView = findViewById(R.id.search_results_list_view);
         mFastScroller = findViewById(R.id.fast_scroller);
@@ -346,15 +359,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             positionSearchBarForCardsMode();
         }
         mSearchUiManager = (SearchUiManager) mSearchContainer;
-
-        // LC-Feature: Nothing-style category cards. The category page is an overlay covering the
-        // whole drawer; it's added last so it draws on top of everything else.
-        mCategoryAppsView = (CategoryAppsView) getLayoutInflater().inflate(
-                R.layout.all_apps_category_page, this, false);
-        mCategoryAppsView.setVisibility(GONE);
-        mCategoryAppsView.setOnBack(this::closeCategoryPage);
-        addView(mCategoryAppsView, new LayoutParams(
-                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
 
     public List<AllAppsRow> getAdditionalHeaderRows() {
@@ -456,40 +460,66 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     }
 
     /**
-     * Opens the full-page view for the given category, covering the drawer with a grid of that
-     * category's apps.
+     * Opens the given category's apps in a standard folder popup, anchored at the tapped card.
+     *
+     * <p>The folder popup is driven by the same {@link Folder}/{@link FolderIcon} machinery as
+     * folders in the app drawer, so back / outside-touch dismissal and the open/close animation
+     * all behave like a normal folder. A hidden {@link FolderIcon} is temporarily placed at the
+     * card's position to anchor the animation and is removed again once the folder closes.
+     *
+     * <p>The folder only opens when the category has more than 4 apps. Categories with up to 4
+     * apps already render every app as a full avatar on the card, so tapping the card does
+     * nothing and the individual avatars launch their apps directly.
      */
-    public void openCategoryPage(CategoryInfo categoryInfo) {
-        if (mCategoryAppsView == null || mCategoryPageOpen) {
+    public void openCategoryFolder(CategoryInfo categoryInfo, View anchor) {
+        if (categoryInfo.apps.size() <= MAX_APPS_PER_CARD_GRID) {
             return;
         }
-        mCategoryPageOpen = true;
-        mSearchContainer.setVisibility(GONE);
-        mHeader.setVisibility(GONE);
-        getAppsRecyclerViewContainer().setVisibility(GONE);
-        getSearchRecyclerView().setVisibility(GONE);
-        mFastScroller.setVisibility(GONE);
-        mCategoryAppsView.setBackgroundColor(getBackgroundColor());
-        mCategoryAppsView.showCategory(categoryInfo);
-        mCategoryAppsView.bringToFront();
-        updateBackgroundVisibility(mActivityContext.getDeviceProfile());
-    }
-
-    /** Closes the full-page category view and returns to the normal drawer layout. */
-    public void closeCategoryPage() {
-        if (!mCategoryPageOpen) {
-            return;
+        FolderInfo folderInfo = new FolderInfo();
+        folderInfo.title = categoryInfo.title;
+        for (AppInfo app : categoryInfo.apps) {
+            folderInfo.add(app);
         }
-        mCategoryPageOpen = false;
-        mCategoryAppsView.clear();
-        updateSearchResultsVisibility();
-        mFastScroller.setVisibility(showFastScroller ? VISIBLE : INVISIBLE);
-        mSearchContainer.setVisibility(isAppDrawerSearchBarHidden() ? GONE : VISIBLE);
-    }
+        FolderIcon folderIcon = FolderIcon.inflateFolderAndIcon(
+                R.layout.all_apps_folder_icon, mActivityContext, /* group */ this, folderInfo);
+        folderIcon.setVisibility(INVISIBLE);
 
-    /** Returns whether the full-page category view is currently shown. */
-    public boolean isCategoryPageOpen() {
-        return mCategoryPageOpen;
+        // Anchor the invisible icon exactly over the tapped card so the folder opens from there.
+        int[] anchorLoc = new int[2];
+        int[] containerLoc = new int[2];
+        anchor.getLocationInWindow(anchorLoc);
+        getLocationInWindow(containerLoc);
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                anchor.getWidth(), anchor.getHeight());
+        lp.leftMargin = anchorLoc[0] - containerLoc[0];
+        lp.topMargin = anchorLoc[1] - containerLoc[1];
+        folderIcon.setLayoutParams(lp);
+        addView(folderIcon);
+
+        Folder folder = folderIcon.getFolder();
+        // The icon is only an animation anchor and is removed once the folder closes, so keep it
+        // hidden and fade the folder out during the close animation instead.
+        folder.setFolderIconHidden(true);
+        folder.setPriorityOnFolderStateChangedListener(state -> {
+            if (state == Folder.STATE_CLOSED) {
+                folderIcon.setVisibility(GONE);
+                removeView(folderIcon);
+                folder.setPriorityOnFolderStateChangedListener(null);
+            }
+        });
+        // The icon is added invisibly, so it never gets measured/drawn by a normal layout pass.
+        // Without a measured size its preview layout rule stays at 0 and the open animation
+        // computes NaN scales (crash). Measure/lay it out explicitly and initialize the preview
+        // geometry before animating open.
+        int width = anchor.getWidth();
+        int height = anchor.getHeight();
+        int widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY);
+        int heightSpec = View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY);
+        folderIcon.measure(widthSpec, heightSpec);
+        folderIcon.layout(lp.leftMargin, lp.topMargin, lp.leftMargin + width,
+                lp.topMargin + height);
+        folderIcon.getPreviewItemManager().recomputePreviewDrawingParams();
+        folder.animateOpen();
     }
 
     /**
@@ -586,11 +616,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         if (rv == null) {
             return true;
         }
-        // The category page list is not bound to a fast scroller, so fall back to a plain
-        // scroll-offset check to decide whether the container can be pulled down.
-        if (isCategoryPageOpen()) {
-            return rv.computeVerticalScrollOffset() == 0;
-        }
         if (rv.getScrollbar() != null
                 && rv.getScrollbar().getThumbOffsetY() >= 0
                 && dragLayer.isEventOverView(rv.getScrollbar(), ev)) {
@@ -620,8 +645,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
      * @param exitSearch Whether to force exit the search state and return to A-Z apps list.
      */
     public void reset(boolean animate, boolean exitSearch) {
-        // Close any open category page.
-        closeCategoryPage();
         // Scroll Main and Work RV to top. Search RV is done in `resetSearch`.
         if (!PreferenceCacheExtensionsKt.firstCached(pref2.getRememberPosition())) {
             for (int i = 0; i < mAH.size(); i++) {
@@ -709,7 +732,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
      * @return {@code true} if back gesture should exit search rather than change launcher state.
       */
     public boolean shouldBackExitSearch() {
-        return isSearching() || isCategoryPageOpen();
+        return isSearching();
     }
 
     @Override
@@ -1301,9 +1324,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 holder.mRecyclerView.getRecycledViewPool().clear();
             }
         }
-        if (mCategoryAppsView != null) {
-            mCategoryAppsView.onDeviceProfileChanged(dp);
-        }
         updateBackgroundVisibility(dp);
 
         boolean needsInvalidate = false;
@@ -1406,9 +1426,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     /** The current active recycler view (A-Z list from one of the profiles, or search results). */
     public AllAppsRecyclerView getActiveRecyclerView() {
-        if (isCategoryPageOpen()) {
-            return mCategoryAppsView.getAppsRecyclerView();
-        }
         if (isSearching()) {
             return getSearchRecyclerView();
         }
@@ -1657,9 +1674,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     @VisibleForTesting
     public View getContentView() {
-        if (isCategoryPageOpen()) {
-            return mCategoryAppsView;
-        }
         return isSearching() ? getSearchRecyclerView() : getAppsRecyclerViewContainer();
     }
 

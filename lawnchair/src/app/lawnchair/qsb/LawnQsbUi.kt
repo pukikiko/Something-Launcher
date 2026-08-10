@@ -269,16 +269,7 @@ fun rememberAllAppsQsbState(
                     method = ThemingMethod.TINT,
                     contentDescription = searchLabel,
                 ),
-                endIcons = listOf(
-                    QsbIconState(
-                        id = QsbIconId.MENU,
-                        resId = R.drawable.ic_more_vert_dots_dark,
-                        themed = false,
-                        method = ThemingMethod.TINT,
-                        contentDescription = overflowLabel,
-                        visible = true,
-                    ),
-                ),
+                endIcons = listOf(),
             )
         }
 

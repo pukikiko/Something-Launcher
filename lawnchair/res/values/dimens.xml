@@ -79,24 +79,25 @@
     <dimen name="all_apps_header_bottom_padding">4dp</dimen>
 
     <!-- category cards -->
-    <dimen name="all_apps_category_card_radius">24dp</dimen>
+    <dimen name="all_apps_category_card_radius">20dp</dimen>
     <dimen name="all_apps_category_card_padding">20dp</dimen>
     <dimen name="all_apps_category_card_padding_top">12dp</dimen>
-    <dimen name="all_apps_category_card_min_height">220dp</dimen>
-    <dimen name="all_apps_category_card_elevation">3dp</dimen>
+    <dimen name="all_apps_category_card_min_height">200dp</dimen>
+    <dimen name="all_apps_category_card_elevation">0dp</dimen>
     <dimen name="all_apps_category_header_size">18sp</dimen>
     <dimen name="all_apps_category_header_bottom_gap">16dp</dimen>
     <dimen name="all_apps_category_avatar_size">64dp</dimen>
     <dimen name="all_apps_category_icon_size">64dp</dimen>
     <dimen name="all_apps_category_icon_h_gap">12dp</dimen>
-    <dimen name="all_apps_category_icon_v_gap">18dp</dimen>
+    <dimen name="all_apps_category_icon_v_gap">12dp</dimen>
     <dimen name="all_apps_category_cluster_icon_size">26dp</dimen>
     <dimen name="all_apps_category_cluster_gap">4dp</dimen>
     <dimen name="all_apps_category_grid_padding">9dp</dimen>
-    <dimen name="all_apps_category_card_margin">7dp</dimen>
+    <dimen name="all_apps_category_card_margin">2dp</dimen>
     <dimen name="all_apps_category_search_bar_height">52dp</dimen>
     <dimen name="all_apps_category_search_bar_h_margin">16dp</dimen>
     <dimen name="all_apps_category_search_bar_bottom_margin">12dp</dimen>
+    <dimen name="all_apps_category_handle_width">36dp</dimen>
 
     <!-- smartspace -->
     <dimen name="smartspaceAmbientShadowBlur">1.5dp</dimen>

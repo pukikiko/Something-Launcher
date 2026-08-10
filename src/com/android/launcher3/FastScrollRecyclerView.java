@@ -173,7 +173,10 @@ public abstract class FastScrollRecyclerView extends RecyclerView  {
 
         // IF scroller is at the very top OR there is no scroll bar because there is probably not
         // enough items to scroll, THEN it's okay for the container to be pulled down.
-        return computeVerticalScrollOffset() == 0;
+        // Some layouts (e.g. the category-cards drawer) report a small negative offset while the
+        // list is visually pinned to the top (cards carry a top margin), so treat any non-positive
+        // offset as "at the top".
+        return computeVerticalScrollOffset() <= 0;
     }
 
     /**

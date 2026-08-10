@@ -11,11 +11,20 @@ All of these are candidates for correction after the next screenshot.
   painted soft shadow; a soft/diffuse custom shadow may need tuning once seen on screen.
 - **Header text size**: spec said ~17–18sp; used **18sp**, weight **500 (medium)**, colour
   `#1F1F1F`.
-- **Icon spacing**: tuned to fit two 64dp avatars inside the card at launcher density: **12dp** horizontal /
-  **18dp** vertical.
-- **Icon inside avatar**: 64dp circle. The app icon is rendered at the full **64dp** so the icon
-  itself fills the entire circle; it is *clipped to a circle* via the avatar outline.
-- **Overflow cluster**: icons at **26dp** with **4dp** gaps inside a 64dp cell (spec: ~26–28dp).
+- **Avatar size is responsive** (not a fixed 64dp): it is derived from the card's actual width so
+  the 2-column grid always fills the card, at any display size. On a ~360dp-wide phone this yields
+  ~58dp; on a ~412dp phone ~71dp; the 64dp spec value is the design reference. No fixed dp clamp is
+  applied: on large display sizes a 48dp floor would overflow (and clip) the grid, and on small
+  display sizes a 72dp ceiling would leave the grid sparse with tiny icons, so the fit size wins.
+  Because the card width isn't known at bind time, `CategoryCardView` rebuilds its icon grid from
+  `onSizeChanged` using the measured width (the first-layout estimate is display-width based and is
+  corrected before the card is drawn).
+- **Icon inside avatar**: the app icon is rendered at the full avatar size so the icon itself fills
+  the entire circle; it is *clipped to a circle* via the avatar outline.
+- **Icon spacing**: **12dp** horizontal / **12dp** vertical (equal h/v spacing), fixed regardless of
+  avatar size. The horizontal gap is subtracted when fitting avatars to the card width.
+- **Overflow cluster**: icons scale with the avatar (26dp / 64dp baseline ratio) with **4dp** gaps
+  (scaled, floored at 2dp) inside the last cell (spec: ~26–28dp).
 
 ## Overflow formula (N)
 
@@ -30,26 +39,56 @@ Spec: "show first `N-1` apps as full avatars, then if remaining apps > 1, pack u
 
 ## Category taxonomy mapping
 
-The custom taxonomy matches apps by **package name prefix/exact match**:
+Categories follow **Google Play's category names**, sorted in Play's canonical order. Apps are
+matched by **package name** (case-insensitive) against the offline database in
+`lawnchair/src/app/lawnchair/util/AppCategoryDb.kt`; anything not in the database falls into
+**Others**.
 
-| Category | Matched packages |
+| Category (Play name) | Matched packages (examples) |
 |---|---|
-| Social | `com.android.contacts`, `com.google.android.gm`, `com.google.android.apps.messaging`, `com.google.android.dialer`, `com.google.android.apps.contacts` |
-| Entertainment | `com.google.android.youtube`, `com.google.android.apps.youtube.music` |
-| Utilities | `com.android.calendar`, `com.android.chrome`, `com.google.android.deskclock`, `com.google.android.apps.docs`(no), `com.android.documentsui`, `com.google.android.googlequicksearchbox`, `com.android.vending` |
-| Travel | `com.google.android.apps.maps` |
-| Productivity | `com.google.android.apps.docs` |
-| Multimedia Tools | `com.google.android.apps.photos` |
-| Others | everything else (Camera `com.google.android.GoogleCamera`, Gemini `com.google.android.apps.gemini`, …) |
+| Games | `com.supercell.clashofclans`, `com.mojang.minecraftpe`, `com.nianticlabs.pokemongo` |
+| Art & Design | `com.canva.editor`, `com.adobe.psmobile` |
+| Auto & Vehicles | `com.teslamotors.tesla`, `com.toyota.oneapp` |
+| Beauty | `com.perfectcorp.beautyplus` |
+| Books & Reference | `com.google.android.apps.books`, `com.amazon.kindle`, `org.wikipedia` |
+| Business | `com.linkedin.android`, `com.slack`, `com.microsoft.office.outlook` |
+| Comics | `com.webtoons.global`, `com.mangaplus.app` |
+| Communication | `com.whatsapp`, `org.telegram.messenger`, `com.google.android.apps.messaging` |
+| Dating | `com.tinder`, `com.bumble.app` |
+| Education | `com.duolingo`, `com.khanacademy.android`, `com.google.android.apps.classroom` |
+| Entertainment | `com.google.android.youtube`, `com.netflix.mediaclient` |
+| Finance | `com.paypal.android.p2pmobile`, `com.coinbase.android` |
+| Food & Drink | `com.ubercab.eats`, `com.mcdonalds.app`, `com.starbucks` |
+| Health & Fitness | `com.google.android.apps.fitness`, `com.strava`, `com.myfitnesspal.android` |
+| House & Home | `com.nest.android`, `com.zillow.android.zillow` |
+| Lifestyle | `com.zwift` |
+| Maps & Navigation | `com.google.android.apps.maps`, `com.waze` |
+| Medical | `com.webmd.android`, `com.goodrx` |
+| Music & Audio | `com.spotify.music`, `com.google.android.apps.youtube.music`, `com.shazam.android` |
+| News & Magazines | `com.google.android.apps.magazines`, `com.bbc.mobile.news.ww` |
+| Parenting | `com.babycenter` |
+| Personalization | `com.google.android.inputmethod.latin`, `com.teslacoilsw.launcher` |
+| Photography | `com.google.android.apps.photos`, `com.google.android.GoogleCamera` |
+| Productivity | `com.google.android.apps.docs`, `com.google.android.keep`, `com.google.android.calendar` |
+| Shopping | `com.amazon.mShop.android.shopping`, `com.walmart.android`, `com.ebay.mobile` |
+| Social | `com.facebook.katana`, `com.instagram.android`, `com.twitter.android` |
+| Sports | `com.espn.score_center`, `com.bbc.sport` |
+| Tools | `com.android.vending`, `com.google.android.googlequicksearchbox`, `com.google.android.calculator` |
+| Travel & Local | `com.airbnb.android`, `com.booking`, `com.ubercab` |
+| Video Players & Editors | `com.google.android.videos`, `org.videolan.vlc`, `com.capcut.lvoverseas` |
+| Weather | `com.accuweather.android`, `com.weather.Weather` |
+| Others | everything not in the database |
 
 Notes / assumptions:
-- **Play Store** (`com.android.vending`) and **Google app** (`com.google.android.googlequicksearchbox`)
-  are mapped to **Utilities**; **Google Photos** to **Multimedia Tools**; **Gmail** to **Social**.
-- The ambiguous overflow icon in the Utilities card (spec §5: "assistant/sparkle", do not hardcode
-  a package) is **not** hardcoded — it comes from whatever app actually overflows into the cluster.
-- The spec's Travel / Productivity / Multimedia Tools single-app categories depend on those apps
-  being installed; on a device without them those cards simply won't appear.
-- Category ordering follows the table order (§5). "Others" is last.
+- The full database is the source of truth (`AppCategoryDb.kt`); it is intentionally large so that
+  the fewest possible apps land in **Others**.
+- **Play Store** (`com.android.vending`) and the **Google app** (`com.google.android.googlequicksearchbox`)
+  are mapped to **Tools**; **Gmail** to **Productivity**; **Google Photos** to **Photography**.
+- The ambiguous overflow icon in an overflowing card is **not** hardcoded — it comes from whatever
+  app actually overflows into the cluster.
+- Categories only appear when at least one installed app maps to them; empty categories are omitted,
+  and **Others** is always kept last.
+- Category ordering follows the enum order in `AppCategory.kt` (Google Play order).
 
 ## Theme scope
 

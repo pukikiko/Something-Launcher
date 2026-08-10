@@ -12,7 +12,8 @@ One line per diff in §7 of the design spec, checked off as implemented.
 - [x] 4. **Search bar position** — search bar pinned at the bottom of the drawer, floating over
       scrollable content (content scrolls behind it).
 - [x] 5. **Top of screen** — drag-handle pill added (widened/styled to ~36×4dp mid-grey).
-- [x] 6. **Category labels** — custom taxonomy replaces Android buckets
-      (Social, Entertainment, Utilities, Travel, Productivity, Multimedia Tools, Others).
+- [x] 6. **Category labels** — Google Play category taxonomy replaces Android buckets; apps are
+      matched against the offline package→category database (`AppCategoryDb.kt`), covering far more
+      apps than the previous hand-picked subset. Anything unmapped falls into "Others".
 - [x] 7. **Card corner radius / shadow** — cards use ~24dp radius with a soft diffuse elevation
       shadow.

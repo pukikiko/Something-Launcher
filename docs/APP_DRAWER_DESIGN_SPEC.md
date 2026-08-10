@@ -39,33 +39,34 @@
 ## 4. Icon grid inside a card
 
 - Icons: **2 columns**, top-to-bottom, left-to-right, wrapping every 2 icons.
-- **Primary icon**: ~64dp diameter circle. Each app icon sits centered on a plain white circular
-  background (avatar look); square/adaptive icons are clipped/masked to a circle with white
+- **Primary icon**: ~64dp diameter circle (responsive: fitted to the card width so the 2-column
+  grid always fills the card, at any display size). Each app icon sits centered on a plain white
+  circular background (avatar look); square/adaptive icons are clipped/masked to a circle with white
   padding — the raw launcher icon is never dropped in as-is.
-- Spacing: ~12dp horizontal between circles, ~16–20dp vertical.
+- Spacing: ~12dp horizontal between circles, equal ~12dp vertical.
 - **Overflow behavior** ("Utilities" card): when a category has more apps than fit as full 64dp
   circles in the visible slots, the **last** grid slot becomes a compact **2×2 mini-cluster**
   (~26–28dp icons, ~4dp gaps, no white circle backgrounds) instead of spawning more full-size rows.
   - Rule: show first `N-1` apps as full avatars; if remaining apps > 1, pack up to 4 of them into
     one 2×2 cluster cell; if there are still more, log it and don't crash.
 
-## 5. Category → app mapping (custom taxonomy)
+## 5. Category → app mapping (Google Play taxonomy)
 
-**These are NOT Android's default category names.** Custom groupings:
+Category names and ordering follow **Google Play's app categories**. Apps are grouped by matching
+their package name against a large offline database (`AppCategoryDb.kt`); anything unmapped falls
+into **Others**.
 
-| Category | Apps observed |
-|---|---|
-| Social | Contacts, Gmail, Messages, Phone |
-| Entertainment | YouTube, YouTube Music |
-| Utilities | Calendar, Chrome, Clock, Files, Google (app), Play Store, + overflow |
-| Travel | Google Maps |
-| Productivity | Google Drive |
-| Multimedia Tools | Google Photos |
-| Others | Camera, Gemini (+ more below the fold) |
+The authoritative category list (in display order) is:
 
-Grouping logic: match installed apps by package name to these buckets; anything unmapped falls
-into **Others**. The label set and grouping logic are fixed; exact app membership adapts to what's
-actually installed.
+Games, Art & Design, Auto & Vehicles, Beauty, Books & Reference, Business, Comics, Communication,
+Dating, Education, Entertainment, Finance, Food & Drink, Health & Fitness, House & Home, Lifestyle,
+Maps & Navigation, Medical, Music & Audio, News & Magazines, Parenting, Personalization,
+Photography, Productivity, Shopping, Social, Sports, Tools, Travel & Local, Video Players & Editors,
+Weather.
+
+Grouping logic: match installed apps by package name against the database; only categories that have
+at least one installed app are shown, and **Others** is kept last. The database is the source of
+truth and is intentionally large so as many apps as possible are sorted into a real category.
 
 ## 6. Bottom search bar (fixed, floats over content)
 
@@ -102,9 +103,9 @@ actually installed.
 | Grid columns | 2 |
 | Outer padding | 16dp |
 | Card gap (h+v) | 14dp |
-| Avatar circle | 64dp |
+| Avatar circle | 64dp reference; responsive (fits card width at any display size) |
 | Icon inside avatar | 64dp (fills the circle), clipped to a circle |
-| Icon spacing (h/v) | 12dp / 18dp |
-| Overflow cluster icon | 26dp, 4dp gaps |
+| Icon spacing (h/v) | 12dp / 12dp |
+| Overflow cluster icon | 26dp reference, scales with avatar; 4dp gaps (min 2dp) |
 | Search bar height | 52dp, dynamic neutral-container pill |
 | Drag handle | 36 × 4dp, mid-grey |

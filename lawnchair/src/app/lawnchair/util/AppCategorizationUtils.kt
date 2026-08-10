@@ -2,6 +2,7 @@ package app.lawnchair.util
 
 import android.content.Context
 import app.lawnchair.flowerpot.Flowerpot
+import java.util.EnumMap
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.util.ApplicationInfoWrapper
 import com.android.launcher3.util.PackageManagerHelper
@@ -55,71 +56,41 @@ fun categorizeAppsWithSystemAndGoogle(
 }
 
 /**
- * Custom, loosely-defined category taxonomy used by the "Smart Categorized" app drawer.
+ * Categorizes apps for the "Smart Categorized" card drawer using Google Play–style categories.
  *
- * This deliberately does NOT use Android's standard app-category buckets. Apps are matched by
- * package name against a fixed set of hand-picked groups; anything unmapped falls into "Others".
- * The label set and the ordering below are the source of truth.
+ * Apps are matched by package name against the offline [AppCategoryDb] database; anything unmapped
+ * falls into "Others". Categories are output in Google Play's canonical order and only non-empty
+ * categories (plus "Others", kept last) are returned.
  *
- * @param apps List of apps to categorize
- * @return LinkedMap of category names (in display order) to lists of apps in that category
+ * @param apps List of apps to categorize (all apps, in any order)
+ * @return Map of category names (in display order) to lists of apps in that category
  */
 fun categorizeAppsForCardsDrawer(
     apps: List<AppInfo>,
 ): Map<String, List<AppInfo>> {
-    val categories = linkedMapOf(
-        "Social" to setOf(
-            "com.android.contacts",
-            "com.google.android.apps.contacts",
-            "com.google.android.gm",
-            "com.google.android.apps.messaging",
-            "com.google.android.dialer",
-        ),
-        "Entertainment" to setOf(
-            "com.google.android.youtube",
-            "com.google.android.apps.youtube.music",
-        ),
-        "Utilities" to setOf(
-            "com.android.calendar",
-            "com.android.chrome",
-            "com.google.android.deskclock",
-            "com.android.documentsui",
-            "com.google.android.googlequicksearchbox",
-            "com.android.vending",
-        ),
-        "Travel" to setOf(
-            "com.google.android.apps.maps",
-        ),
-        "Productivity" to setOf(
-            "com.google.android.apps.docs",
-        ),
-        "Multimedia Tools" to setOf(
-            "com.google.android.apps.photos",
-        ),
-    )
-
-    val result = linkedMapOf<String, MutableList<AppInfo>>()
-    categories.keys.forEach { result[it] = mutableListOf() }
+    val buckets = EnumMap<AppCategory, MutableList<AppInfo>>(AppCategory::class.java)
     val others = mutableListOf<AppInfo>()
 
     apps.forEach { app ->
         val packageName = app.targetPackage ?: return@forEach
-        val category = categories.entries.firstOrNull { (_, packages) ->
-            packageName in packages
-        }?.key
+        val category = AppCategoryDb.categoryFor(packageName)
         if (category != null) {
-            result[category]?.add(app)
+            buckets.getOrPut(category) { mutableListOf() }.add(app)
         } else {
             others.add(app)
         }
     }
 
-    // Drop empty categories, but always keep "Others" last even if it ends up empty.
+    // Categories holding a single app don't get their own card; fold them into "Others".
+    AppCategory.entries.forEach { category ->
+        buckets[category]?.takeIf { it.size == 1 }?.let { others.add(it.first()) }
+    }
+
+    // Output categories in enum (Google Play) order, dropping empty and single-app ones;
+    // keep "Others" last.
     return buildMap {
-        result.forEach { (category, categoryApps) ->
-            if (categoryApps.isNotEmpty()) {
-                put(category, categoryApps)
-            }
+        AppCategory.entries.forEach { category ->
+            buckets[category]?.takeIf { it.size > 1 }?.let { put(category.displayName, it) }
         }
         if (others.isNotEmpty()) {
             put("Others", others)

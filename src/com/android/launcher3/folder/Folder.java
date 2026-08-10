@@ -254,6 +254,12 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     private final List<OnFolderStateChangedListener> mOnFolderStateChangedListeners =
             new ArrayList<>();
     private OnFolderStateChangedListener mPriorityOnFolderStateChangedListener;
+    /**
+     * Whether the folder icon should stay hidden after the folder closes. Used by transient
+     * folder popups (e.g. category cards in the app drawer) whose icon only anchors the animation
+     * and is removed again once the folder closes.
+     */
+    private boolean mFolderIconHidden = false;
     @ViewDebug.ExportedProperty(category = "launcher")
     private boolean mRearrangeOnClose = false;
     boolean mItemsInvalidated = false;
@@ -1096,8 +1102,10 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             if (wasAnimated) {
                 mFolderIcon.onFolderClose(mContent.getCurrentPage());
             }
-            mFolderIcon.setVisibility(View.VISIBLE);
-            mFolderIcon.setIconVisible(true);
+            if (!mFolderIconHidden) {
+                mFolderIcon.setVisibility(View.VISIBLE);
+                mFolderIcon.setIconVisible(true);
+            }
             mFolderIcon.mFolderName.setTextVisibility(true);
             if (wasAnimated) {
                 mFolderIcon.animateBgShadowAndStroke();
@@ -2162,6 +2170,19 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
      */
     public void setPriorityOnFolderStateChangedListener(OnFolderStateChangedListener listener) {
         mPriorityOnFolderStateChangedListener = listener;
+    }
+
+    /**
+     * Sets whether the folder icon should stay hidden after the folder closes. Intended for
+     * transient folder popups whose icon only anchors the open/close animation.
+     */
+    public void setFolderIconHidden(boolean hidden) {
+        mFolderIconHidden = hidden;
+    }
+
+    /** Returns whether the folder icon should stay hidden after the folder closes. */
+    public boolean isFolderIconHidden() {
+        return mFolderIconHidden;
     }
 
     @VisibleForTesting

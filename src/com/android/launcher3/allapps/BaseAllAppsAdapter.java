@@ -219,9 +219,12 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
         }
     }
 
-    /** Listener invoked when a category card is clicked (to open its full-page view). */
+    /**
+     * Listener invoked when a category card is clicked. The anchor is the card view that was
+     * tapped, used to position the opened folder popup.
+     */
     public interface OnCategoryCardClickListener {
-        void onCategoryCardClick(CategoryInfo categoryInfo);
+        void onCategoryCardClick(CategoryInfo categoryInfo, View anchor);
     }
 
     protected final T mActivityContext;
@@ -435,7 +438,8 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
                     categoryCard.bind(categoryInfo, mAppsPerRow, mOnIconClickListener,
                             mOnIconLongClickListener, () -> {
                                 if (mOnCategoryCardClickListener != null) {
-                                    mOnCategoryCardClickListener.onCategoryCardClick(categoryInfo);
+                                    mOnCategoryCardClickListener.onCategoryCardClick(
+                                            categoryInfo, cardView);
                                 }
                             });
                 }

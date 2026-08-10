@@ -288,6 +288,24 @@ class FolderSpringAnimatorSet(val animatorSet: AnimatorSet) {
                     property = View.ALPHA,
                     view = folderName,
                 )
+                // Transient folder popups (e.g. category cards in the app drawer) have no real
+                // folder icon to land on, so fade the folder out as it closes instead of shrinking
+                // into a folder-icon shaped remnant that then disappears.
+                if (!isOpening && folder.isFolderIconHidden) {
+                    playSpringAnimation(
+                        context = folder.context,
+                        animatorSet = animatorSet,
+                        isOpening = false,
+                        startDelay = 0,
+                        stiffness = STIFFNESS_SHAPE_POSITION,
+                        damping = DAMPING_SHAPE_POSITION,
+                        startValue = 0f,
+                        endValue = 1f,
+                        minVisibleChange = MIN_VISIBLE_CHANGE_ALPHA,
+                        property = View.ALPHA,
+                        view = folder,
+                    )
+                }
             }
         }
 

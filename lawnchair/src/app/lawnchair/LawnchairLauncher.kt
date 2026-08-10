@@ -293,10 +293,6 @@ class LawnchairLauncher : QuickstepLauncher() {
 
     override fun onStateBack() {
         val appsView = mAppsView
-        if (appsView?.isCategoryPageOpen == true) {
-            appsView.closeCategoryPage()
-            return
-        }
         val searchInput = appsView?.searchUiManager?.editText
         val isSearching = appsView?.isSearching == true || searchInput?.hasFocus() == true
         if (isSearching) {
